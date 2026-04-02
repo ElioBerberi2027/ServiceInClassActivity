@@ -5,19 +5,30 @@ import android.content.Intent
 import android.content.ServiceConnection
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
+import android.os.Message
 import android.util.Log
 import android.widget.Button
+import android.widget.TextView
 
 class MainActivity : AppCompatActivity() {
 
     private var timerBinder: TimerService.TimerBinder? = null
     private var bound = false
+    private lateinit var countdownText: TextView
+
+    private val timerHandler = Handler(Looper.getMainLooper()) { msg: Message ->
+        countdownText.text = msg.what.toString()
+        true
+    }
 
     private var connection = object :  ServiceConnection {
         override fun onServiceConnected(p0: ComponentName?, p1: IBinder?) {
             Log.d("MainActivity", "service connected")
             timerBinder = p1 as TimerService.TimerBinder
+            timerBinder?.setHandler(timerHandler)
             bound = true
         }
 
@@ -47,6 +58,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        countdownText = findViewById(R.id.textView)
 
         findViewById<Button>(R.id.startButton).setOnClickListener {
             if (bound) {
