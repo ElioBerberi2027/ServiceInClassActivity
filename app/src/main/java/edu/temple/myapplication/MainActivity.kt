@@ -19,6 +19,8 @@ class MainActivity : AppCompatActivity() {
     private var bound = false
     private lateinit var countdownText: TextView
 
+    private lateinit var startButton: Button
+
     private val timerHandler = Handler(Looper.getMainLooper()) { msg: Message ->
         countdownText.text = msg.what.toString()
         true
@@ -60,10 +62,25 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         countdownText = findViewById(R.id.textView)
+        startButton = findViewById(R.id.startButton)
 
-        findViewById<Button>(R.id.startButton).setOnClickListener {
+        startButton.setOnClickListener {
             if (bound) {
-                timerBinder?.start(10)
+                timerBinder?.let { binder ->
+                    if (!binder.isRunning) {
+                        // Start timer
+                        binder.start(10)
+                        startButton.text = "Pause"
+                    } else if (!binder.paused) {
+                        // Pause timer
+                        binder.pause()
+                        startButton.text = "Resume"
+                    } else {
+                        // Resume timer
+                        binder.pause()
+                        startButton.text = "Pause"
+                    }
+                }
             }
         }
 
