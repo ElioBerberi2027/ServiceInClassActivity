@@ -10,6 +10,8 @@ import android.os.IBinder
 import android.os.Looper
 import android.os.Message
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Button
 import android.widget.TextView
 
@@ -88,6 +90,40 @@ class MainActivity : AppCompatActivity() {
             if (bound) {
                 timerBinder?.stop()
             }
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+
+            R.id.action_start -> {
+                if (bound) {
+                    timerBinder?.let { binder ->
+                        if (!binder.isRunning) {
+                            binder.start(10)
+                        } else if (!binder.paused) {
+                            binder.pause()
+                        } else {
+                            binder.pause()
+                        }
+                    }
+                }
+                true
+            }
+
+            R.id.action_stop -> {
+                if (bound) {
+                    timerBinder?.stop()
+                }
+                true
+            }
+
+            else -> super.onOptionsItemSelected(item)
         }
     }
 }
