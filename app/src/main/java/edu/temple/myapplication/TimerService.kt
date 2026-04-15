@@ -18,6 +18,14 @@ class TimerService : Service() {
 
     private var paused = false
 
+    private var currentVal = 0
+
+    private val PREFS = "timer_pref"
+
+    private val KEY_VAL = "curr_val"
+
+    private val KEY_PAUSED = "paused"
+
     inner class TimerBinder : Binder() {
 
         // Check if Timer is already running
@@ -31,13 +39,25 @@ class TimerService : Service() {
         // Start a new timer
         fun start(startValue: Int){
 
-            if (!paused) {
-                if (!isRunning) {
-                    if (::t.isInitialized) t.interrupt()
-                    this@TimerService.start(startValue)
-                }
+            val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+            val savedVal = prefs.getInt(KEY_VAL, -1)
+            val wasPaused = prefs.getBoolean(KEY_PAUSED, false)
+
+            val valueToStart = if (wasPaused && savedVal > 0) {
+                savedVal
             } else {
-                pause()
+                startValue
+            }
+
+            this@TimerService.paused = false
+
+            val prefsEdit = getSharedPreferences(PREFS, MODE_PRIVATE).edit()
+            prefsEdit.putBoolean(KEY_PAUSED, false)
+            prefsEdit.apply()
+
+            if (!isRunning) {
+                if (::t.isInitialized) t.interrupt()
+                this@TimerService.start(valueToStart)
             }
         }
 
@@ -50,6 +70,7 @@ class TimerService : Service() {
         fun stop() {
             if (::t.isInitialized || isRunning) {
                 t.interrupt()
+                clearState()
             }
         }
 
@@ -79,7 +100,24 @@ class TimerService : Service() {
         if (::t.isInitialized) {
             paused = !paused
             isRunning = !paused
+
+            if (paused){
+                saveState()
+            }
         }
+    }
+
+    private fun saveState() {
+        val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+        prefs.edit()
+            .putInt(KEY_VAL, currentVal)
+            .putBoolean(KEY_PAUSED, true)
+            .apply()
+    }
+
+    private fun clearState() {
+        val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
+        prefs.edit().clear().apply()
     }
 
     inner class TimerThread(private val startValue: Int) : Thread() {
@@ -88,6 +126,11 @@ class TimerService : Service() {
             isRunning = true
             try {
                 for (i in startValue downTo 1)  {
+
+                    while (paused);
+
+                    currentVal = i
+
                     Log.d("Countdown", i.toString())
 
                     timerHandler?.sendEmptyMessage(i)
@@ -96,10 +139,14 @@ class TimerService : Service() {
                     sleep(1000)
 
                 }
+                clearState()
                 isRunning = false
             } catch (e: InterruptedException) {
                 Log.d("Timer interrupted", e.toString())
                 isRunning = false
+                if (!paused){
+                    clearState()
+                }
                 paused = false
             }
         }
